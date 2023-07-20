@@ -26,10 +26,33 @@ SB2240 & SB2209 are basically the same. The only difference is that "the EBB SB2
 
 ---
 
-## Procedure
+## Overview
 
 It describes how to program and test everything right on your desktop, before you install the gear in printer. Basically the Manta M8P is powered via USB (remember to plug the jumper) and the SB2209 toolhead is powered via USB (also needs jumper) cable plugged into Manta M8P.
 So with +5V and GND over USB you only need to send two CAN bus signals between the boards.
+
+The general idea is thy straight from the factory CAN is not enabled neither on manta nor on the toolhead SB2240/SB2209. You have to build klipper images for both with different configurations and flash that firmware.
+There are many flashing options
+
+- Manta: USB, SD Card, CAN
+- Toolhead: USB, CAN
+  Normally you can flash using USB and/or SD. If you install CanBoot on any of the devices you will be able to flash also over CAN.
+
+If you're programming vis USB DFU, both MCUs in the DFU mode are listet by lsub as **0483:df11**. So you should switch to DFU and program one after another...
+
+What I did was (this is more of a note to myself)):
+
+1. I flashed the Klipper fw on Manta M8P using sd card, as described in one of the manuals - checked how it runs and whannot.
+2. I flashed the CanBoot on the toolhead SB2209 configured with 1000000 can speed over usb thinking that's all I needed, but I was wrong.
+3. I figured out how to connect both boards and how to power them on my desk.
+4. I rebuilt Klipper for Manta M8P in the USB CAN bridge mode and flashed it over DFU USB using a commandline
+5. I built Klipper for the toolheead and sent it over CAN
+6. I added both MCUs to Klipper and that seems to be all for now
+
+You may do it in another sequence/configuration.
+You only need Klippers on both MCUs with the same CAN bus speed and different ports for CAN interfaces.
+
+## The procedure
 
 ### 1. [Install linux on CB1 and Klipper on M8P ](doc/installKlipper.md)
 
@@ -37,7 +60,7 @@ So with +5V and GND over USB you only need to send two CAN bus signals between t
 
 This is needed, if you want to upload SB 2209 firmware over CAN later, otherwise you may keep using USB (which is the default factory setting) for that. Yet CanBoot is more convenient. You will need not to disassemble the printhead to get to BOOT0 RESET buttons. Firmware can be sent using a command line.
 
-### 3. Connect SB2209 and M8P with CAN cable, enable terminators and provide power supply
+### 3. Connect SB2209 and M8P together with CAN cable, enable 120 ohm terminators on both and supply power
 
 - There are 2 black 2-wire CAN headers on Manta M8P 1.1. They are the same - they only have CAN L / CAN H lines (PD12 / PD13) - so it doesn't matter to which you connect.
 - For testing you may keep SB2209 supplied from the USB port (jumper on USB_5V)
@@ -70,25 +93,19 @@ so...
 
 ### <u>Helpful videos</u>:
 
+(I learned from them)
+
 #### 1. [Bigtreetech 必趣 Manta M8P v1.1 + EBB Canbus CanBoot Klipper 完整教程](https://www.youtube.com/watch?v=ekbxtDS_8cM&t=327s)
 
 by Botio 波提歐
-It is in Chineese, very fast, but can be followed by looking at screens
+It is in Chineese, very fast-paced, but can be followed by looking at screens and pausing in crucial moments.
 
-It shows how to:
+It shows you how to:
 
-- install Klipper
+- install Klipper on manta
 - use Klipper Installation And Update Helper [kiauh](https://github.com/th33xitus/kiauh) to update your installation (he selects action 2 "Update")
 - build CanBoot bootloader for M8P (canboot.bin)
-
-        Build CanBoot deployment application (Do not build)
-        Communication interface (CAN bus (on PD12/PD13))
-
 - build Klipper fw for M8P in USB CAN bridge mode (klipper.bin)
-
-        Communication interface (USB to CAN bus bridge (USB on PA11/PA12))
-        CAN bus interface (CAN bus (on PD12/PD13))
-
 - flash canboot.bin (to M8P i.e. 0483:df11)
   `sudo dfu-util -a 0 -D ~/CanBoot/out/canboot.bin --dfuse-address 0x8000000:force:mass-erase -d 0483:df11`
 
